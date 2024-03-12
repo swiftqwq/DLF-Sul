@@ -380,10 +380,10 @@ def test():
     data2 = pd.DataFrame(target_all)
     writer1 = pd.ExcelWriter('BLSTM+2头注意力机制+残差+CNN.xlsx')  # 写入Excel文件
     writer2 = pd.ExcelWriter('target.xlsx')  # 写入Excel文件
-    data1.to_excel(writer1, 'BLSTM+2头注意力机制+残差+CNN', float_format='%.5f')  # ‘page_1’是写入excel的sheet名
-    data2.to_excel(writer2, 'target', float_format='%.1f')  # ‘page_1’是写入excel的sheet名
-    writer1.save()
-    writer2.save()
+    data1.to_excel(writer1, sheet_name='BLSTM+2头注意力机制+残差+CNN', float_format='%.5f')  # ‘page_1’是写入excel的sheet名
+    data2.to_excel(writer2, sheet_name='target', float_format='%.1f')  # ‘page_1’是写入excel的sheet名
+    #writer1.save()
+    #writer2.save()
     writer1.close()
     writer2.close()
     fpr, tpr, thresholds = metrics.roc_curve(target_all,output_all, pos_label=1)
