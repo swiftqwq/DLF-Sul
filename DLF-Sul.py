@@ -9,7 +9,9 @@ from sklearn import metrics
 import matplotlib.pyplot as plt
 import math
 import pandas as pd
-def encode(p_string,n_string):
+
+
+def encode(p_string, n_string):
     n = len(p_string)
     m = len(n_string)
     m_l = len(p_string[0])
@@ -51,7 +53,10 @@ def encode(p_string,n_string):
     x_AAI_n = torch.tensor(x_AAI_n, dtype=torch.float32, requires_grad=True)
     input_batch_p = torch.cat((x_BE_p, x_62_p, x_AAI_p), 2)
     input_batch_n = torch.cat((x_BE_n, x_62_n, x_AAI_n), 2)
-    return input_batch_p,input_batch_n
+    print(x_BE_p.shape, x_62_p.shape, x_AAI_p.shape)
+    print(input_batch_p.shape)
+    return input_batch_p, input_batch_n
+
 
 def forward(x):
     x_BE = BE(x)  # (len,20)
@@ -65,12 +70,13 @@ def BE(gene):
         records = f.readlines()[1:]
     BE = []
     for i in records:
-        array = i.rstrip().split() if i.rstrip() != '' else None
+        array = i.rstrip().split() if i.rstrip() != "" else None
         BE.append(array)
     BE = np.array(
-        [float(BE[i][j]) for i in range(len(BE)) for j in range(len(BE[i]))]).reshape((20, 21))
+        [float(BE[i][j]) for i in range(len(BE)) for j in range(len(BE[i]))]
+    ).reshape((20, 21))
     BE = BE.transpose()
-    AA = 'ACDEFGHIKLMNPQRSTWYV*'
+    AA = "ACDEFGHIKLMNPQRSTWYV*"
     GENE_BE = {}
     for i in range(len(AA)):
         GENE_BE[AA[i]] = i
@@ -86,13 +92,18 @@ def BLOSUM62(gene):
         records = f.readlines()[1:]
     blosum62 = []
     for i in records:
-        array = i.rstrip().split() if i.rstrip() != '' else None
+        array = i.rstrip().split() if i.rstrip() != "" else None
         blosum62.append(array)
     blosum62 = np.array(
-        [float(blosum62[i][j]) for i in range(len(blosum62)) for j in range(len(blosum62[i]))]).reshape((20, 21))
+        [
+            float(blosum62[i][j])
+            for i in range(len(blosum62))
+            for j in range(len(blosum62[i]))
+        ]
+    ).reshape((20, 21))
     blosum62 = blosum62.transpose()
     GENE_BE = {}
-    AA = 'ARNDCQEGHILKMFPSTWYV*'
+    AA = "ARNDCQEGHILKMFPSTWYV*"
     for i in range(len(AA)):
         GENE_BE[AA[i]] = i
     n = len(gene)
@@ -107,13 +118,14 @@ def AAI(gene):
         records = f.readlines()[1:]
     AAI = []
     for i in records:
-        array = i.rstrip().split()[1:] if i.rstrip() != '' else None
+        array = i.rstrip().split()[1:] if i.rstrip() != "" else None
         AAI.append(array)
     AAI = np.array(
-        [float(AAI[i][j]) for i in range(len(AAI)) for j in range(len(AAI[i]))]).reshape((14, 21))
+        [float(AAI[i][j]) for i in range(len(AAI)) for j in range(len(AAI[i]))]
+    ).reshape((14, 21))
     AAI = AAI.transpose()
     GENE_BE = {}
-    AA = 'ACDEFGHIKLMNPQRSTWYV*'
+    AA = "ACDEFGHIKLMNPQRSTWYV*"
     for i in range(len(AA)):
         GENE_BE[AA[i]] = i
     n = len(gene)
@@ -130,14 +142,20 @@ def train_data():
         train_p_string = f.read().split("\n")
     with open("train_n2.txt", "r") as f:
         train_n_string = f.read().split("\n")
-    input_batch_p,input_batch_n = encode(train_p_string,train_n_string)
+    input_batch_p, input_batch_n = encode(train_p_string, train_n_string)
     for i in range(len(train_p_string)):
         target_batch_p.append([1, 0])
     for i in range(len(train_n_string)):
         target_batch_n.append([0, 1])
-    #print(input_batch)
-    #print(target_batch)
-    return torch.FloatTensor(input_batch_p), torch.FloatTensor(input_batch_n), torch.FloatTensor(target_batch_p), torch.FloatTensor(target_batch_n)
+    # print(input_batch)
+    # print(target_batch)
+    return (
+        torch.FloatTensor(input_batch_p),
+        torch.FloatTensor(input_batch_n),
+        torch.FloatTensor(target_batch_p),
+        torch.FloatTensor(target_batch_n),
+    )
+
 
 def validate_data():
     target_batch_p = []
@@ -151,7 +169,13 @@ def validate_data():
         target_batch_p.append([1, 0])
     for i in range(len(validate_n_string)):
         target_batch_n.append([0, 1])
-    return torch.FloatTensor(input_batch_p), torch.FloatTensor(input_batch_n), torch.FloatTensor(target_batch_p), torch.FloatTensor(target_batch_n)
+    return (
+        torch.FloatTensor(input_batch_p),
+        torch.FloatTensor(input_batch_n),
+        torch.FloatTensor(target_batch_p),
+        torch.FloatTensor(target_batch_n),
+    )
+
 
 def test_data():
     target_batch_p = []
@@ -165,32 +189,58 @@ def test_data():
         target_batch_p.append([1, 0])
     for i in range(len(test_n_string)):
         target_batch_n.append([0, 1])
-    return torch.FloatTensor(input_batch_p), torch.FloatTensor(input_batch_n), torch.FloatTensor(target_batch_p), torch.FloatTensor(target_batch_n)
+    return (
+        torch.FloatTensor(input_batch_p),
+        torch.FloatTensor(input_batch_n),
+        torch.FloatTensor(target_batch_p),
+        torch.FloatTensor(target_batch_n),
+    )
 
 
 class Network(nn.Module):
     def __init__(self):
         super(Network, self).__init__()
-        self.blstm = nn.LSTM(input_size=54, hidden_size=n_hidden, bidirectional=True,batch_first = True)
-        self.W_Q = nn.Linear(n_hidden*2, d_k * n_heads, bias=False)
-        self.W_K = nn.Linear(n_hidden*2, d_k * n_heads, bias=False)
-        self.W_V = nn.Linear(n_hidden*2, d_v * n_heads, bias=False)
+        self.blstm1 = nn.LSTM(
+            input_size=20, hidden_size=n_hidden, bidirectional=True, batch_first=True
+        )
+        self.blstm2 = nn.LSTM(
+            input_size=20, hidden_size=n_hidden, bidirectional=True, batch_first=True
+        )
+        self.blstm3 = nn.LSTM(
+            input_size=14, hidden_size=n_hidden, bidirectional=True, batch_first=True
+        )
+        self.W_Q = nn.Linear(n_hidden * 2, d_k * n_heads, bias=False)
+        self.W_K = nn.Linear(n_hidden * 2, d_k * n_heads, bias=False)
+        self.W_V = nn.Linear(n_hidden * 2, d_v * n_heads, bias=False)
         self.fc = nn.Sequential(
             nn.Linear(n_heads * d_v, n_hidden * 2, bias=False),
         )
-        self.conv = nn.Sequential(
-               nn.Conv2d(in_channels=1, out_channels=8, kernel_size=6, stride=2),
-               nn.BatchNorm2d(8),
-               nn.ReLU(),
-               nn.MaxPool2d(kernel_size=(1,2)),
-           )
-        self.FC = nn.Sequential(
-            nn.Linear(3224, 64),
-            nn.Dropout(0.5),
-            nn.Linear(64, 2),
-            torch.nn.Sigmoid()
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(in_channels=1, out_channels=8, kernel_size=6, stride=2),
+            nn.BatchNorm2d(8),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=(1, 2)),
         )
-    def attention(self,input_Q,input_K,input_V,d_model):
+        self.conv2 = nn.Sequential(
+            nn.Conv2d(in_channels=1, out_channels=8, kernel_size=6, stride=2),
+            nn.BatchNorm2d(8),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=(1, 2)),
+        )
+        self.conv3 = nn.Sequential(
+            nn.Conv2d(in_channels=1, out_channels=8, kernel_size=6, stride=2),
+            nn.BatchNorm2d(8),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=(1, 2)),
+        )
+        self.FC = nn.Sequential(
+            nn.Linear(3224 * 3, 128),
+            nn.Dropout(0.5),
+            nn.Linear(128, 2),
+            torch.nn.Sigmoid(),
+        )
+
+    def attention(self, input_Q, input_K, input_V, d_model):
         residual, batch_size1 = input_Q, input_Q.size(0)
         # print(input_Q.shape)
         Q = self.W_Q(input_Q).view(batch_size1, -1, n_heads, d_k).transpose(1, 2)
@@ -207,7 +257,7 @@ class Network(nn.Module):
         context = context.transpose(1, 2).reshape(batch_size1, -1, n_heads * d_v)
         # context: [batch_size, len_q, n_heads * d_v]
         output = self.fc(context)  # [batch_size, len_q, d_model]
-        return nn.LayerNorm(d_model)(output+residual )
+        return nn.LayerNorm(d_model)(output + residual)
 
     def forward(self, X):
         # print(X.shape)
@@ -215,25 +265,54 @@ class Network(nn.Module):
         # X: [batch_size, n_step, n_class]
         batch_size = X.shape[0]
         # print(batch_size)
-        hidden_state = torch.zeros(1*2, batch_size, n_hidden)   # [num_layers(=1) * num_directions(=1), batch_size, n_hidden]
-        cell_state = torch.zeros(1*2, batch_size, n_hidden)    # [num_layers(=1) * num_directions(=1), batch_size, n_hidden]
-        outputs, (_, _) = self.blstm(X, (hidden_state, cell_state))
+        hidden_state1 = torch.zeros(
+            1 * 2, batch_size, n_hidden
+        )  # [num_layers(=1) * num_directions(=1), batch_size, n_hidden]
+        cell_state1 = torch.zeros(
+            1 * 2, batch_size, n_hidden
+        )  # [num_layers(=1) * num_directions(=1), batch_size, n_hidden]
+        outputs1, (_, _) = self.blstm1(X[:, :, 0:20], (hidden_state1, cell_state1))
+
+        hidden_state2 = torch.zeros(
+            1 * 2, batch_size, n_hidden
+        )  # [num_layers(=1) * num_directions(=1), batch_size, n_hidden]
+        cell_state2 = torch.zeros(
+            1 * 2, batch_size, n_hidden
+        )  # [num_layers(=1) * num_directions(=1), batch_size, n_hidden]
+        outputs2, (_, _) = self.blstm2(X[:, :, 20:40], (hidden_state2, cell_state2))
+
+        hidden_state3 = torch.zeros(
+            1 * 2, batch_size, n_hidden
+        )  # [num_layers(=1) * num_directions(=1), batch_size, n_hidden]
+        cell_state3 = torch.zeros(
+            1 * 2, batch_size, n_hidden
+        )  # [num_layers(=1) * num_directions(=1), batch_size, n_hidden]
+        outputs3, (_, _) = self.blstm3(X[:, :, 40:54], (hidden_state3, cell_state3))
         # print(outputs.shape)
         # exit()
-        d_model = outputs.size()[-1]
-        enc_inputs = outputs
-        input_Q = enc_inputs
-        input_K = enc_inputs
-        input_V = enc_inputs
-        x_attention_outputs = self.attention(enc_inputs,enc_inputs,enc_inputs,d_model)
-        x_CNN_in = x_attention_outputs.unsqueeze(1)
-        # x_CNN_in = outputs.unsqueeze(1)
-        outputs = self.conv(x_CNN_in)
-        outputs = outputs.view(batch_size, -1)
+        # d_model = outputs.size()[-1]
+        # enc_inputs = outputs
+        # input_Q = enc_inputs
+        # input_K = enc_inputs
+        # input_V = enc_inputs
+        # x_attention_outputs = self.attention(enc_inputs,enc_inputs,enc_inputs,d_model)
+        # x_CNN_in = x_attention_outputs.unsqueeze(1)
+        x_CNN1_in = outputs1.unsqueeze(1)
+        outputs1 = self.conv1(x_CNN1_in)
+        outputs1 = outputs1.view(batch_size, -1)
+
+        x_CNN2_in = outputs2.unsqueeze(1)
+        outputs2 = self.conv2(x_CNN2_in)
+        outputs2 = outputs2.view(batch_size, -1)
+
+        x_CNN3_in = outputs3.unsqueeze(1)
+        outputs3 = self.conv3(x_CNN3_in)
+        outputs3 = outputs3.view(batch_size, -1)
         # print(outputs.size())
-        model = self.FC(outputs)
+        model = self.FC(torch.cat((outputs1, outputs2, outputs3), dim=1))
         # print(model.size())
         return model
+
 
 # Training
 def evalute(model, validater):
@@ -241,9 +320,9 @@ def evalute(model, validater):
     result = []
     label = []
     criterion = nn.BCELoss()
-    for x_p,x_n, y_p,y_n in validater:
-        #x_p = x_p.cuda()
-        #x_n = x_n.cuda()
+    for x_p, x_n, y_p, y_n in validater:
+        # x_p = x_p.cuda()
+        # x_n = x_n.cuda()
         x = torch.cat((x_p, x_n), 0)
         outputs = model(x)
         target = torch.cat((y_p, y_n), 0)
@@ -252,7 +331,7 @@ def evalute(model, validater):
         outputs = outputs[:, 0]
         target = target[:, 0]
         for i in range(len(outputs)):
-            if (outputs[i] > 0.5):
+            if outputs[i] > 0.5:
                 outputs[i] = 1.0
             else:
                 outputs[i] = 0.0
@@ -264,6 +343,7 @@ def evalute(model, validater):
         val_acc = metrics.accuracy_score(result, label)
     return val_acc
 
+
 def train():
     best_acc = 0
     besttrain_acc = 0
@@ -274,8 +354,8 @@ def train():
             model.train()
             # print(x_p.shape)
             # print(x)
-            #x_p= x_p.cuda()
-            #x_n= x_n.cuda()
+            # x_p= x_p.cuda()
+            # x_n= x_n.cuda()
             x = torch.cat((x_p, x_n), 0)
             outputs = model(x)
             # print(pred)
@@ -288,7 +368,7 @@ def train():
             outputs = outputs[:, 0]
             target = y[:, 0]
             for i in range(len(outputs)):
-                if (outputs[i] > 0.5):
+                if outputs[i] > 0.5:
                     outputs[i] = 1.0
                 else:
                     outputs[i] = 0.0
@@ -298,7 +378,7 @@ def train():
             for it in target:
                 label.append(it.item())
             if (epoch + 1) % 1 == 0:
-                print('Epoch:', '%04d' % (epoch + 1), 'cost =', '{:.6f}'.format(loss))
+                print("Epoch:", "%04d" % (epoch + 1), "cost =", "{:.6f}".format(loss))
         train_acc = metrics.accuracy_score(result, label)
         if train_acc > besttrain_acc:
             besttrain_epoch = epoch
@@ -311,9 +391,10 @@ def train():
         if val_acc > best_acc:
             best_epoch = epoch
             best_acc = val_acc
-            torch.save(model.state_dict(), 'models/BLSTM+2头注意力机制+残差+CNN.mdl')
-    print('best 训练集acc：', besttrain_acc, 'best epoch：', besttrain_epoch)
-    print('best 验证集acc：', best_acc, 'best epoch：', best_epoch)
+            torch.save(model.state_dict(), "models/BLSTM+2头注意力机制+残差+CNN.mdl")
+    print("best 训练集acc：", besttrain_acc, "best epoch：", besttrain_epoch)
+    print("best 验证集acc：", best_acc, "best epoch：", best_epoch)
+
 
 def test():
     label_p = []
@@ -327,13 +408,13 @@ def test():
     output_all = []
     target_all = []
     model.eval()
-    for x_p,x_n, y_p,y_n in tqdm(testloader):
-        #x_p = x_p.cuda()
-        #x_n = x_n.cuda()
+    for x_p, x_n, y_p, y_n in tqdm(testloader):
+        # x_p = x_p.cuda()
+        # x_n = x_n.cuda()
         x = torch.cat((x_p, x_n), 0)
         outputs = model(x)
         target = torch.cat((y_p, y_n), 0)
-        outputs_z = torch.split(outputs,int(len(outputs)/2), dim=0)
+        outputs_z = torch.split(outputs, int(len(outputs) / 2), dim=0)
         outputs = outputs[:, 0]
         target = target[:, 0]
         outputs_p = outputs_z[0]
@@ -350,12 +431,12 @@ def test():
         output_all.extend(outputs)
 
         for i in range(len(outputs_p)):
-            if (outputs_p[i] > 0.5):
+            if outputs_p[i] > 0.5:
                 outputs_p[i] = 1.0
             else:
                 outputs_p[i] = 0.0
         for i in range(len(outputs_n)):
-            if (outputs_n[i] > 0.5):
+            if outputs_n[i] > 0.5:
                 outputs_n[i] = 1.0
             else:
                 outputs_n[i] = 0.0
@@ -368,12 +449,12 @@ def test():
         for it in target_n:
             label_n.append(it.item())
         for i in range(len(result_p)):
-            if (result_p[i] > 0.5):
+            if result_p[i] > 0.5:
                 Tp = Tp + 1
             else:
                 Fp = Fp + 1
         for i in range(len(result_n)):
-            if (result_n[i] < 0.5):
+            if result_n[i] < 0.5:
                 Tn = Tn + 1
             else:
                 Fn = Fn + 1
@@ -381,24 +462,30 @@ def test():
     target_all = np.array(target_all)
     data1 = pd.DataFrame(output_all)
     data2 = pd.DataFrame(target_all)
-    writer1 = pd.ExcelWriter('BLSTM+2头注意力机制+残差+CNN.xlsx')  # 写入Excel文件
-    writer2 = pd.ExcelWriter('target.xlsx')  # 写入Excel文件
-    data1.to_excel(writer1, sheet_name='BLSTM+2头注意力机制+残差+CNN', float_format='%.5f')  # ‘page_1’是写入excel的sheet名
-    data2.to_excel(writer2, sheet_name='target', float_format='%.1f')  # ‘page_1’是写入excel的sheet名
-    #writer1.save()
-    #writer2.save()
+    writer1 = pd.ExcelWriter("BLSTM+2头注意力机制+残差+CNN.xlsx")  # 写入Excel文件
+    writer2 = pd.ExcelWriter("target.xlsx")  # 写入Excel文件
+    data1.to_excel(
+        writer1, sheet_name="BLSTM+2头注意力机制+残差+CNN", float_format="%.5f"
+    )  # ‘page_1’是写入excel的sheet名
+    data2.to_excel(
+        writer2, sheet_name="target", float_format="%.1f"
+    )  # ‘page_1’是写入excel的sheet名
+    # writer1.save()
+    # writer2.save()
     writer1.close()
     writer2.close()
-    fpr, tpr, thresholds = metrics.roc_curve(target_all,output_all, pos_label=1)
+    fpr, tpr, thresholds = metrics.roc_curve(target_all, output_all, pos_label=1)
     auc = metrics.auc(fpr, tpr)
-    test_acc = (Tp+Tn)/(Tp+Fn+Tn+Fp)
-    #test_acc = metrics.accuracy_score(result, label)
-    test_Sn = Tp/(Tp+Fn)
-    test_Sp = Tn/(Tn+Fp)
-    test_Mcc = (Tp*Tn-Fp*Fn)/math.sqrt((Tp+Fn)*(Tp+Fp)*(Tn+Fp)*(Tn+Fn))
-    #test_Sn = metrics.accuracy_score(result_p, label_p)
-    #test_Sp = metrics.accuracy_score(result_n, label_n)
-    print("测试集acc：",test_acc)
+    test_acc = (Tp + Tn) / (Tp + Fn + Tn + Fp)
+    # test_acc = metrics.accuracy_score(result, label)
+    test_Sn = Tp / (Tp + Fn)
+    test_Sp = Tn / (Tn + Fp)
+    test_Mcc = (Tp * Tn - Fp * Fn) / math.sqrt(
+        (Tp + Fn) * (Tp + Fp) * (Tn + Fp) * (Tn + Fn)
+    )
+    # test_Sn = metrics.accuracy_score(result_p, label_p)
+    # test_Sp = metrics.accuracy_score(result_n, label_n)
+    print("测试集acc：", test_acc)
     print("Sn：", test_Sn)
     print("Sp：", test_Sp)
     print("Mcc：", test_Mcc)
@@ -414,14 +501,14 @@ def test():
     # plt.ylabel('True Positive Rate')
     # plt.title('Receiver operating characteristic example')
     # plt.legend(loc="lower right")
-    #plt.show()
+    # plt.show()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     batch_size = 32
     n_hidden = 64
     d_k = d_v = 64  # dimension of K(=Q), V
-    n_heads = 8# number of heads in Multi-Head Attention
+    n_heads = 8  # number of heads in Multi-Head Attention
     initial_lr = 0.001
     epochs = 120
     epochs_z = []
@@ -430,40 +517,53 @@ if __name__ == '__main__':
     train_batch_p, train_batch_n, train_target_p, train_target_n = train_data()
     val_batch_p, val_batch_n, val_target_p, val_target_n = validate_data()
     test_batch_p, test_batch_n, test_target_p, test_target_n = test_data()
-    traindataset = Data.TensorDataset(train_batch_p, train_batch_n, train_target_p, train_target_n)
-    valdataset = Data.TensorDataset(val_batch_p, val_batch_n, val_target_p, val_target_n)
-    testdataset = Data.TensorDataset(test_batch_p, test_batch_n, test_target_p, test_target_n)
+    traindataset = Data.TensorDataset(
+        train_batch_p, train_batch_n, train_target_p, train_target_n
+    )
+    valdataset = Data.TensorDataset(
+        val_batch_p, val_batch_n, val_target_p, val_target_n
+    )
+    testdataset = Data.TensorDataset(
+        test_batch_p, test_batch_n, test_target_p, test_target_n
+    )
 
     trainloader = Data.DataLoader(traindataset, batch_size, True)
     valloader = Data.DataLoader(valdataset, batch_size, True)
     testloader = Data.DataLoader(testdataset, batch_size, True)
-    #device = torch.device('cuda:0'if torch.cuda.is_available() else "cpu")
-    #model = Network().to(device)
+    # device = torch.device('cuda:0'if torch.cuda.is_available() else "cpu")
+    # model = Network().to(device)
     model = Network()
     criterion = nn.BCELoss()
     optimizer = optim.Adam(model.parameters(), lr=initial_lr)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=4, verbose=False,
-                                               threshold=0.0001, threshold_mode='rel', cooldown=0, min_lr=0, eps=1e-08)
-    #scheduler = LambdaLR(optimizer, lr_lambda=lambda epoch: 1 / (epoch + 1))
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer,
+        mode="max",
+        factor=0.5,
+        patience=4,
+        verbose=False,
+        threshold=0.0001,
+        threshold_mode="rel",
+        cooldown=0,
+        min_lr=0,
+        eps=1e-08,
+    )
+    # scheduler = LambdaLR(optimizer, lr_lambda=lambda epoch: 1 / (epoch + 1))
     train()
     model.load_state_dict(torch.load("models/BLSTM+2头注意力机制+残差+CNN.mdl"))
     test()
     print(trainacc)
     print(valacc)
     plt.axis([0, epochs, 0, 1])
-    plt.plot(epochs_z, trainacc, color='b', label='train_acc')
-    plt.xlabel('iteration')
-    plt.ylabel('accuracy')
+    plt.plot(epochs_z, trainacc, color="b", label="train_acc")
+    plt.xlabel("iteration")
+    plt.ylabel("accuracy")
     plt.title("acc chart")
     plt.legend()
-    #plt.show()
-    plt.plot(epochs_z, valacc, color='r', label='val_acc')
-    plt.xlabel('iteration')
-    plt.ylabel('accuracy')
+    # plt.show()
+    plt.plot(epochs_z, valacc, color="r", label="val_acc")
+    plt.xlabel("iteration")
+    plt.ylabel("accuracy")
     plt.title("acc chart")
     plt.legend()
-    plt.savefig('result/BLSTMCNNMutiAttentionCacc.jpg')
-    #plt.show()
-
-
-
+    plt.savefig("result/BLSTMCNNMutiAttentionCacc.jpg")
+    # plt.show()
