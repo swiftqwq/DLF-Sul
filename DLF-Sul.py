@@ -290,7 +290,7 @@ class Network(nn.Module):
         )  # [num_layers(=1) * num_directions(=1), batch_size, n_hidden]
         outputs3, (_, _) = self.blstm3(X[:, :, 40:54], (hidden_state3, cell_state3))
 
-        # print(outputs3.shape)        
+        # print(outputs3.shape)
         # exit()
 
         x_CNN1_in = outputs1.unsqueeze(1)
@@ -304,7 +304,7 @@ class Network(nn.Module):
 
         outputs = torch.cat((outputs1, outputs2, outputs3), dim=1)
         # print(outputs.shape)
-        outputs = outputs.permute(0, 3, 1, 2).contiguous().view(batch_size, 31, 24*13)
+        outputs = outputs.permute(0, 3, 1, 2).contiguous().view(batch_size, 31, 24 * 13)
 
         # exit()
 
@@ -316,7 +316,7 @@ class Network(nn.Module):
         x_attention_outputs = self.attention(
             enc_inputs, enc_inputs, enc_inputs, d_model
         )
-        #print(x_attention_outputs.shape)
+        # print(x_attention_outputs.shape)
         model = self.FC(x_attention_outputs.unsqueeze(1).view(batch_size, -1))
         # print(model.size())
         return model
@@ -393,6 +393,7 @@ def train():
             besttrain_epoch = epoch
             besttrain_acc = train_acc
         val_acc = evalute(model, valloader)
+        print(val_acc)
         scheduler.step(val_acc)
         epochs_z.extend([epoch])
         trainacc.extend([train_acc])
