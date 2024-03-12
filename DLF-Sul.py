@@ -53,8 +53,8 @@ def encode(p_string, n_string):
     x_AAI_n = torch.tensor(x_AAI_n, dtype=torch.float32, requires_grad=True)
     input_batch_p = torch.cat((x_BE_p, x_62_p, x_AAI_p), 2)
     input_batch_n = torch.cat((x_BE_n, x_62_n, x_AAI_n), 2)
-    print(x_BE_p.shape, x_62_p.shape, x_AAI_p.shape)
-    print(input_batch_p.shape)
+    # print(x_BE_p.shape, x_62_p.shape, x_AAI_p.shape)
+    # print(input_batch_p.shape)
     return input_batch_p, input_batch_n
 
 
@@ -209,11 +209,11 @@ class Network(nn.Module):
         self.blstm3 = nn.LSTM(
             input_size=14, hidden_size=n_hidden, bidirectional=True, batch_first=True
         )
-        self.W_Q = nn.Linear(n_hidden * 2, d_k * n_heads, bias=False)
-        self.W_K = nn.Linear(n_hidden * 2, d_k * n_heads, bias=False)
-        self.W_V = nn.Linear(n_hidden * 2, d_v * n_heads, bias=False)
+        self.W_Q = nn.Linear(312, d_k * n_heads, bias=False)
+        self.W_K = nn.Linear(312, d_k * n_heads, bias=False)
+        self.W_V = nn.Linear(312, d_v * n_heads, bias=False)
         self.fc = nn.Sequential(
-            nn.Linear(n_heads * d_v, n_hidden * 2, bias=False),
+            nn.Linear(n_heads * d_v, 312, bias=False),
         )
         self.conv1 = nn.Sequential(
             nn.Conv2d(in_channels=1, out_channels=8, kernel_size=6, stride=2),
@@ -234,15 +234,14 @@ class Network(nn.Module):
             nn.MaxPool2d(kernel_size=(1, 2)),
         )
         self.FC = nn.Sequential(
-            nn.Linear(3224 * 3, 128),
+            nn.Linear(9672, 64),
             nn.Dropout(0.5),
-            nn.Linear(128, 2),
+            nn.Linear(64, 2),
             torch.nn.Sigmoid(),
         )
 
     def attention(self, input_Q, input_K, input_V, d_model):
         residual, batch_size1 = input_Q, input_Q.size(0)
-        # print(input_Q.shape)
         Q = self.W_Q(input_Q).view(batch_size1, -1, n_heads, d_k).transpose(1, 2)
         K = self.W_K(input_K).view(batch_size1, -1, n_heads, d_k).transpose(1, 2)
         V = self.W_V(input_V).view(batch_size1, -1, n_heads, d_v).transpose(1, 2)
@@ -257,6 +256,8 @@ class Network(nn.Module):
         context = context.transpose(1, 2).reshape(batch_size1, -1, n_heads * d_v)
         # context: [batch_size, len_q, n_heads * d_v]
         output = self.fc(context)  # [batch_size, len_q, d_model]
+        # print(output.shape)
+        # print(residual.shape)
         return nn.LayerNorm(d_model)(output + residual)
 
     def forward(self, X):
@@ -288,28 +289,35 @@ class Network(nn.Module):
             1 * 2, batch_size, n_hidden
         )  # [num_layers(=1) * num_directions(=1), batch_size, n_hidden]
         outputs3, (_, _) = self.blstm3(X[:, :, 40:54], (hidden_state3, cell_state3))
-        # print(outputs.shape)
+
+        # print(outputs3.shape)        
         # exit()
-        # d_model = outputs.size()[-1]
-        # enc_inputs = outputs
-        # input_Q = enc_inputs
-        # input_K = enc_inputs
-        # input_V = enc_inputs
-        # x_attention_outputs = self.attention(enc_inputs,enc_inputs,enc_inputs,d_model)
-        # x_CNN_in = x_attention_outputs.unsqueeze(1)
+
         x_CNN1_in = outputs1.unsqueeze(1)
         outputs1 = self.conv1(x_CNN1_in)
-        outputs1 = outputs1.view(batch_size, -1)
 
         x_CNN2_in = outputs2.unsqueeze(1)
         outputs2 = self.conv2(x_CNN2_in)
-        outputs2 = outputs2.view(batch_size, -1)
 
         x_CNN3_in = outputs3.unsqueeze(1)
         outputs3 = self.conv3(x_CNN3_in)
-        outputs3 = outputs3.view(batch_size, -1)
-        # print(outputs.size())
-        model = self.FC(torch.cat((outputs1, outputs2, outputs3), dim=1))
+
+        outputs = torch.cat((outputs1, outputs2, outputs3), dim=1)
+        # print(outputs.shape)
+        outputs = outputs.permute(0, 3, 1, 2).contiguous().view(batch_size, 31, 24*13)
+
+        # exit()
+
+        d_model = outputs.size()[-1]
+        enc_inputs = outputs
+        input_Q = enc_inputs
+        input_K = enc_inputs
+        input_V = enc_inputs
+        x_attention_outputs = self.attention(
+            enc_inputs, enc_inputs, enc_inputs, d_model
+        )
+        #print(x_attention_outputs.shape)
+        model = self.FC(x_attention_outputs.unsqueeze(1).view(batch_size, -1))
         # print(model.size())
         return model
 
@@ -361,6 +369,7 @@ def train():
             # print(pred)
             y = torch.cat((y_p, y_n), 0)
             # print(y)
+            # print(outputs.shape, y.shape)
             loss = criterion(outputs, y)
             optimizer.zero_grad()
             loss.backward()
@@ -507,7 +516,7 @@ def test():
 if __name__ == "__main__":
     batch_size = 32
     n_hidden = 64
-    d_k = d_v = 64  # dimension of K(=Q), V
+    d_k = d_v = 312  # dimension of K(=Q), V
     n_heads = 8  # number of heads in Multi-Head Attention
     initial_lr = 0.001
     epochs = 120
