@@ -11,6 +11,9 @@ import math
 import pandas as pd
 
 
+device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+
+
 def encode(p_string, n_string):
     n = len(p_string)
     m = len(n_string)
@@ -201,42 +204,60 @@ class Network(nn.Module):
     def __init__(self):
         super(Network, self).__init__()
         self.blstm1 = nn.LSTM(
-            input_size=20, hidden_size=n_hidden, bidirectional=True, batch_first=True
+            input_size=20,
+            hidden_size=n_hidden,
+            bidirectional=True,
+            batch_first=True,
+            device=device,
         )
         self.blstm2 = nn.LSTM(
-            input_size=20, hidden_size=n_hidden, bidirectional=True, batch_first=True
+            input_size=20,
+            hidden_size=n_hidden,
+            bidirectional=True,
+            batch_first=True,
+            device=device,
         )
         self.blstm3 = nn.LSTM(
-            input_size=14, hidden_size=n_hidden, bidirectional=True, batch_first=True
+            input_size=14,
+            hidden_size=n_hidden,
+            bidirectional=True,
+            batch_first=True,
+            device=device,
         )
-        self.W_Q = nn.Linear(312, d_k * n_heads, bias=False)
-        self.W_K = nn.Linear(312, d_k * n_heads, bias=False)
-        self.W_V = nn.Linear(312, d_v * n_heads, bias=False)
+        self.W_Q = nn.Linear(403, d_k * n_heads, bias=False, device=device)
+        self.W_K = nn.Linear(403, d_k * n_heads, bias=False, device=device)
+        self.W_V = nn.Linear(403, d_v * n_heads, bias=False, device=device)
         self.fc = nn.Sequential(
-            nn.Linear(n_heads * d_v, 312, bias=False),
+            nn.Linear(n_heads * d_v, 403, bias=False, device=device)
         )
         self.conv1 = nn.Sequential(
-            nn.Conv2d(in_channels=1, out_channels=8, kernel_size=6, stride=2),
-            nn.BatchNorm2d(8),
+            nn.Conv2d(
+                in_channels=1, out_channels=8, kernel_size=6, stride=2, device=device
+            ),
+            nn.BatchNorm2d(8, device=device),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=(1, 2)),
         )
         self.conv2 = nn.Sequential(
-            nn.Conv2d(in_channels=1, out_channels=8, kernel_size=6, stride=2),
-            nn.BatchNorm2d(8),
+            nn.Conv2d(
+                in_channels=1, out_channels=8, kernel_size=6, stride=2, device=device
+            ),
+            nn.BatchNorm2d(8, device=device),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=(1, 2)),
         )
         self.conv3 = nn.Sequential(
-            nn.Conv2d(in_channels=1, out_channels=8, kernel_size=6, stride=2),
-            nn.BatchNorm2d(8),
+            nn.Conv2d(
+                in_channels=1, out_channels=8, kernel_size=6, stride=2, device=device
+            ),
+            nn.BatchNorm2d(8, device=device),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=(1, 2)),
         )
         self.FC = nn.Sequential(
-            nn.Linear(9672, 64),
+            nn.Linear(9672, 64, device=device),
             nn.Dropout(0.5),
-            nn.Linear(64, 2),
+            nn.Linear(64, 2, device=device),
             torch.nn.Sigmoid(),
         )
 
@@ -258,7 +279,7 @@ class Network(nn.Module):
         output = self.fc(context)  # [batch_size, len_q, d_model]
         # print(output.shape)
         # print(residual.shape)
-        return nn.LayerNorm(d_model)(output + residual)
+        return nn.LayerNorm(d_model, device=device)(output + residual)
 
     def forward(self, X):
         # print(X.shape)
@@ -267,26 +288,26 @@ class Network(nn.Module):
         batch_size = X.shape[0]
         # print(batch_size)
         hidden_state1 = torch.zeros(
-            1 * 2, batch_size, n_hidden
+            1 * 2, batch_size, n_hidden, device=device
         )  # [num_layers(=1) * num_directions(=1), batch_size, n_hidden]
         cell_state1 = torch.zeros(
-            1 * 2, batch_size, n_hidden
+            1 * 2, batch_size, n_hidden, device=device
         )  # [num_layers(=1) * num_directions(=1), batch_size, n_hidden]
         outputs1, (_, _) = self.blstm1(X[:, :, 0:20], (hidden_state1, cell_state1))
 
         hidden_state2 = torch.zeros(
-            1 * 2, batch_size, n_hidden
+            1 * 2, batch_size, n_hidden, device=device
         )  # [num_layers(=1) * num_directions(=1), batch_size, n_hidden]
         cell_state2 = torch.zeros(
-            1 * 2, batch_size, n_hidden
+            1 * 2, batch_size, n_hidden, device=device
         )  # [num_layers(=1) * num_directions(=1), batch_size, n_hidden]
         outputs2, (_, _) = self.blstm2(X[:, :, 20:40], (hidden_state2, cell_state2))
 
         hidden_state3 = torch.zeros(
-            1 * 2, batch_size, n_hidden
+            1 * 2, batch_size, n_hidden, device=device
         )  # [num_layers(=1) * num_directions(=1), batch_size, n_hidden]
         cell_state3 = torch.zeros(
-            1 * 2, batch_size, n_hidden
+            1 * 2, batch_size, n_hidden, device=device
         )  # [num_layers(=1) * num_directions(=1), batch_size, n_hidden]
         outputs3, (_, _) = self.blstm3(X[:, :, 40:54], (hidden_state3, cell_state3))
 
@@ -304,12 +325,12 @@ class Network(nn.Module):
 
         outputs = torch.cat((outputs1, outputs2, outputs3), dim=1)
         # print(outputs.shape)
-        outputs = outputs.permute(0, 3, 1, 2).contiguous().view(batch_size, 31, 24 * 13)
+        outputs = outputs.contiguous().view(batch_size, 24, 31 * 13)
 
         # exit()
 
         d_model = outputs.size()[-1]
-        enc_inputs = outputs
+        enc_inputs = outputs.to(device)
         input_Q = enc_inputs
         input_K = enc_inputs
         input_V = enc_inputs
@@ -331,8 +352,9 @@ def evalute(model, validater):
     for x_p, x_n, y_p, y_n in validater:
         # x_p = x_p.cuda()
         # x_n = x_n.cuda()
-        x = torch.cat((x_p, x_n), 0)
-        outputs = model(x)
+        x = torch.cat((x_p, x_n), 0).to(device)
+        outputs = model(x).cpu()
+
         target = torch.cat((y_p, y_n), 0)
         loss = criterion(outputs, target)
         # print('loss =', '{:.6f}'.format(loss))
@@ -362,10 +384,10 @@ def train():
             model.train()
             # print(x_p.shape)
             # print(x)
-            # x_p= x_p.cuda()
-            # x_n= x_n.cuda()
+            x_p = x_p.to(device)
+            x_n = x_n.to(device)
             x = torch.cat((x_p, x_n), 0)
-            outputs = model(x)
+            outputs = model(x).cpu()
             # print(pred)
             y = torch.cat((y_p, y_n), 0)
             # print(y)
@@ -421,8 +443,8 @@ def test():
     for x_p, x_n, y_p, y_n in tqdm(testloader):
         # x_p = x_p.cuda()
         # x_n = x_n.cuda()
-        x = torch.cat((x_p, x_n), 0)
-        outputs = model(x)
+        x = torch.cat((x_p, x_n), 0).to(device)
+        outputs = model(x).cpu()
         target = torch.cat((y_p, y_n), 0)
         outputs_z = torch.split(outputs, int(len(outputs) / 2), dim=0)
         outputs = outputs[:, 0]
@@ -517,10 +539,10 @@ def test():
 if __name__ == "__main__":
     batch_size = 32
     n_hidden = 64
-    d_k = d_v = 312  # dimension of K(=Q), V
+    d_k = d_v = 403  # dimension of K(=Q), V
     n_heads = 8  # number of heads in Multi-Head Attention
     initial_lr = 0.001
-    epochs = 120
+    epochs = 60
     epochs_z = []
     valacc = []
     trainacc = []
@@ -540,9 +562,8 @@ if __name__ == "__main__":
     trainloader = Data.DataLoader(traindataset, batch_size, True)
     valloader = Data.DataLoader(valdataset, batch_size, True)
     testloader = Data.DataLoader(testdataset, batch_size, True)
-    # device = torch.device('cuda:0'if torch.cuda.is_available() else "cpu")
-    # model = Network().to(device)
-    model = Network()
+    model = Network().to(device)
+    # model = Network()
     criterion = nn.BCELoss()
     optimizer = optim.Adam(model.parameters(), lr=initial_lr)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
