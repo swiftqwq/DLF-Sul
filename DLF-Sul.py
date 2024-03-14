@@ -224,38 +224,38 @@ class Network(nn.Module):
             batch_first=True,
             device=device,
         )
-        self.W_Q = nn.Linear(403, d_k * n_heads, bias=False, device=device)
-        self.W_K = nn.Linear(403, d_k * n_heads, bias=False, device=device)
-        self.W_V = nn.Linear(403, d_v * n_heads, bias=False, device=device)
+        self.W_Q = nn.Linear(195, d_k * n_heads, bias=False, device=device)
+        self.W_K = nn.Linear(195, d_k * n_heads, bias=False, device=device)
+        self.W_V = nn.Linear(195, d_v * n_heads, bias=False, device=device)
         self.fc = nn.Sequential(
-            nn.Linear(n_heads * d_v, 403, bias=False, device=device)
+            nn.Linear(n_heads * d_v, 195, bias=False, device=device)
         )
         self.conv1 = nn.Sequential(
             nn.Conv2d(
-                in_channels=1, out_channels=8, kernel_size=6, stride=2, device=device
+                in_channels=1, out_channels=12, kernel_size=6, stride=2, device=device
             ),
-            nn.BatchNorm2d(8, device=device),
+            nn.BatchNorm2d(12, device=device),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=(1, 2)),
         )
         self.conv2 = nn.Sequential(
             nn.Conv2d(
-                in_channels=1, out_channels=8, kernel_size=6, stride=2, device=device
+                in_channels=1, out_channels=12, kernel_size=6, stride=2, device=device
             ),
-            nn.BatchNorm2d(8, device=device),
+            nn.BatchNorm2d(12, device=device),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=(1, 2)),
         )
         self.conv3 = nn.Sequential(
             nn.Conv2d(
-                in_channels=1, out_channels=8, kernel_size=6, stride=2, device=device
+                in_channels=1, out_channels=12, kernel_size=6, stride=2, device=device
             ),
-            nn.BatchNorm2d(8, device=device),
+            nn.BatchNorm2d(12, device=device),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=(1, 2)),
         )
         self.FC = nn.Sequential(
-            nn.Linear(9672, 64, device=device),
+            nn.Linear(7020, 64, device=device),
             nn.Dropout(0.5),
             nn.Linear(64, 2, device=device),
             torch.nn.Sigmoid(),
@@ -325,7 +325,7 @@ class Network(nn.Module):
 
         outputs = torch.cat((outputs1, outputs2, outputs3), dim=1)
         # print(outputs.shape)
-        outputs = outputs.contiguous().view(batch_size, 24, 31 * 13)
+        outputs = outputs.contiguous().view(batch_size, 36, 15 * 13)
 
         # exit()
 
@@ -518,6 +518,11 @@ def test():
     # test_Sn = metrics.accuracy_score(result_p, label_p)
     # test_Sp = metrics.accuracy_score(result_n, label_n)
     print("测试集acc：", test_acc)
+    # write test_acc to file test_acc.txt
+    with open("test_acc.txt", "w") as f:
+        f.write(str(test_acc))
+        f.close()
+    
     print("Sn：", test_Sn)
     print("Sp：", test_Sp)
     print("Mcc：", test_Mcc)
@@ -538,11 +543,11 @@ def test():
 
 if __name__ == "__main__":
     batch_size = 32
-    n_hidden = 64
-    d_k = d_v = 403  # dimension of K(=Q), V
+    n_hidden = 32
+    d_k = d_v = 195  # dimension of K(=Q), V
     n_heads = 8  # number of heads in Multi-Head Attention
     initial_lr = 0.001
-    epochs = 60
+    epochs = 40
     epochs_z = []
     valacc = []
     trainacc = []
