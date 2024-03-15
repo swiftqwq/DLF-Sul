@@ -256,7 +256,7 @@ class Network(nn.Module):
         )
         self.FC = nn.Sequential(
             nn.Linear(7020, 64, device=device),
-            nn.Dropout(0.4),
+            nn.Dropout(0.5),
             nn.Linear(64, 2, device=device),
             torch.nn.Sigmoid(),
         )
@@ -361,7 +361,7 @@ def evalute(model, validater):
         outputs = outputs[:, 0]
         target = target[:, 0]
         for i in range(len(outputs)):
-            if outputs[i] > 0.4:
+            if outputs[i] > 0.45:
                 outputs[i] = 1.0
             else:
                 outputs[i] = 0.0
@@ -399,7 +399,7 @@ def train():
             outputs = outputs[:, 0]
             target = y[:, 0]
             for i in range(len(outputs)):
-                if outputs[i] > 0.4:
+                if outputs[i] > 0.45:
                     outputs[i] = 1.0
                 else:
                     outputs[i] = 0.0
@@ -463,12 +463,12 @@ def test():
         output_all.extend(outputs)
 
         for i in range(len(outputs_p)):
-            if outputs_p[i] > 0.4:
+            if outputs_p[i] > 0.45:
                 outputs_p[i] = 1.0
             else:
                 outputs_p[i] = 0.0
         for i in range(len(outputs_n)):
-            if outputs_n[i] > 0.4:
+            if outputs_n[i] > 0.45:
                 outputs_n[i] = 1.0
             else:
                 outputs_n[i] = 0.0
@@ -481,12 +481,12 @@ def test():
         for it in target_n:
             label_n.append(it.item())
         for i in range(len(result_p)):
-            if result_p[i] > 0.4:
+            if result_p[i] > 0.45:
                 Tp = Tp + 1
             else:
                 Fp = Fp + 1
         for i in range(len(result_n)):
-            if result_n[i] < 0.4:
+            if result_n[i] < 0.45:
                 Tn = Tn + 1
             else:
                 Fn = Fn + 1
@@ -574,7 +574,7 @@ if __name__ == "__main__":
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer,
         mode="max",
-        factor=0.4,
+        factor=0.5,
         patience=4,
         verbose=False,
         threshold=0.0001,

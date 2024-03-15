@@ -4,3 +4,4 @@ BLSTM+2头注意力机制+残差+CNN.xlsx
 result/
 tmp.py
 test_acc.txt
+.DS_Store
