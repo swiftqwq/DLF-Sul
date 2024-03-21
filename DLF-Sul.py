@@ -586,6 +586,7 @@ if __name__ == "__main__":
     # scheduler = LambdaLR(optimizer, lr_lambda=lambda epoch: 1 / (epoch + 1))
     train()
     model.load_state_dict(torch.load("models/BLSTM+2头注意力机制+残差+CNN.mdl"))
+    #model.load_state_dict(torch.load("models/best2.mdl"))
     test()
     print(trainacc)
     print(valacc)

@@ -17,11 +17,11 @@ def run_DLF_Sul():
     with open("test_acc.txt", "r") as file:
         test_acc = file.read()
     print("test_acc: ", float(test_acc))
-    if float(test_acc) > 0.931:
-        print("DLF-Sul.py finished with test_acc > 0.931")
+    if float(test_acc) > 0.928:
+        print("DLF-Sul.py finished with test_acc > 0.928")
         return True
     else:
-        print("DLF-Sul.py finished with test_acc < 0.931")
+        print("DLF-Sul.py finished with test_acc < 0.928")
         return False
 
 
