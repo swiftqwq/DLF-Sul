@@ -566,7 +566,7 @@ if __name__ == "__main__":
 
     trainloader = Data.DataLoader(traindataset, batch_size, True)
     valloader = Data.DataLoader(valdataset, batch_size, True)
-    testloader = Data.DataLoader(testdataset, batch_size, True)
+    testloader = Data.DataLoader(testdataset, batch_size, False)
     model = Network().to(device)
     # model = Network()
     criterion = nn.BCELoss()
