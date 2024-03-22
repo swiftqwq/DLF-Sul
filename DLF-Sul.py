@@ -361,7 +361,7 @@ def evalute(model, validater):
         outputs = outputs[:, 0]
         target = target[:, 0]
         for i in range(len(outputs)):
-            if outputs[i] > 0.45:
+            if outputs[i] > 0.5:
                 outputs[i] = 1.0
             else:
                 outputs[i] = 0.0
@@ -399,7 +399,7 @@ def train():
             outputs = outputs[:, 0]
             target = y[:, 0]
             for i in range(len(outputs)):
-                if outputs[i] > 0.45:
+                if outputs[i] > 0.5:
                     outputs[i] = 1.0
                 else:
                     outputs[i] = 0.0
@@ -463,12 +463,12 @@ def test():
         output_all.extend(outputs)
 
         for i in range(len(outputs_p)):
-            if outputs_p[i] > 0.45:
+            if outputs_p[i] > 0.5:
                 outputs_p[i] = 1.0
             else:
                 outputs_p[i] = 0.0
         for i in range(len(outputs_n)):
-            if outputs_n[i] > 0.45:
+            if outputs_n[i] > 0.5:
                 outputs_n[i] = 1.0
             else:
                 outputs_n[i] = 0.0
@@ -480,16 +480,16 @@ def test():
             result_n.append(it.item())
         for it in target_n:
             label_n.append(it.item())
-        for i in range(len(result_p)):
-            if result_p[i] > 0.45:
-                Tp = Tp + 1
-            else:
-                Fp = Fp + 1
-        for i in range(len(result_n)):
-            if result_n[i] < 0.45:
-                Tn = Tn + 1
-            else:
-                Fn = Fn + 1
+    for i in range(len(result_p)):
+        if result_p[i] > 0.5:
+            Tp = Tp + 1
+        else:
+            Fp = Fp + 1
+    for i in range(len(result_n)):
+        if result_n[i] < 0.5:
+            Tn = Tn + 1
+        else:
+            Fn = Fn + 1
     output_all = np.array(output_all)
     target_all = np.array(target_all)
     data1 = pd.DataFrame(output_all)
@@ -566,7 +566,7 @@ if __name__ == "__main__":
 
     trainloader = Data.DataLoader(traindataset, batch_size, True)
     valloader = Data.DataLoader(valdataset, batch_size, True)
-    testloader = Data.DataLoader(testdataset, batch_size, False)
+    testloader = Data.DataLoader(testdataset, batch_size, True)
     model = Network().to(device)
     # model = Network()
     criterion = nn.BCELoss()
@@ -588,6 +588,7 @@ if __name__ == "__main__":
     model.load_state_dict(torch.load("models/BLSTM+2头注意力机制+残差+CNN.mdl"))
     #model.load_state_dict(torch.load("models/best2.mdl"))
     test()
+    #torch.save(model, "models/best_all.mdl")
     print(trainacc)
     print(valacc)
     plt.axis([0, epochs, 0, 1])
